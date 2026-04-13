@@ -1,0 +1,494 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define RESET   "\x1b[0m"
+#define BOLD    "\x1b[1m"
+#define BLUE    "\x1b[34m"
+#define WHITE   "\x1b[97m"
+#define YELLOW  "\x1b[33m"
+#define CYAN    "\x1b[36m"
+#define GREEN   "\x1b[32m"
+#define RED     "\x1b[31m"
+#define DIM     "\x1b[2m"
+
+struct Booking {
+    char name[50];
+    char phone[20];
+    char roomType[20];
+    int rooms;
+    int fromDay, fromMonth, fromYear;
+    int stayDays;
+    int pricePerDay;
+    int totalPrice;
+};
+
+struct Order {
+    int roomNo;
+    char item[50];
+    int quantity;
+    int unitPrice;
+    int totalPrice;
+};
+
+struct Service {
+    int roomNo;
+    char request[50];
+};
+
+void adminPanel();
+void guestPanel();
+void booking();
+void restaurant();
+void serviceRequest();
+void checkout();
+void viewBookings();
+void viewOrders();
+void viewServices();
+void deleteBooking();
+
+void flushInput() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+int main() {
+    printf(BLUE);
+    printf("                 ___________________________\n");
+    printf("                /                           \\\n");
+    printf("               /         SUNRISE HOTEL       \\\n");
+    printf("              /_______________________________\\\n");
+    printf("              |                               |\n");
+    printf("              |  [ ]   [ ]   [ ]   [ ]   [ ]  |\n");
+    printf("              |                               |\n");
+    printf("              |  [ ]   [ ]   [ ]   [ ]   [ ]  |\n");
+    printf("              |                               |\n");
+    printf("              |  [ ]   [ ]   [ ]   [ ]   [ ]  |\n");
+    printf("              |                               |\n");
+    printf("              |  [ ]   [ ]   [ ]   [ ]   [ ]  |\n");
+    printf("              |                               |\n");
+    printf("              |=========== L O B B Y =========|\n");
+    printf("              |   __                    __    |\n");
+    printf("              |  |  |  RECEPTION       |  |   |\n");
+    printf("              |  |__|                  |__|   |\n");
+    printf("              |                               |\n");
+    printf("              |        ___          ___       |\n");
+    printf("              |       |   |  DOOR  |   |      |\n");
+    printf("              |_______|___|________|___|______|\n");
+    printf("             /_________________________________\\\n");
+    printf("            /___________________________________\\\n");
+    printf(RESET);
+
+    int choice;
+
+    while (1) {
+        printf("\n\n" YELLOW BOLD " ----- HOTEL MANAGEMENT SYSTEM ----- " RESET "\n");
+        printf(WHITE BOLD "1. Admin Login\n" RESET);
+        printf(WHITE BOLD "2. Guest Portal\n" RESET);
+        printf(WHITE BOLD "3. Exit\n" RESET);
+        printf(CYAN "Choose option: " RESET);
+
+        if (scanf("%d", &choice) != 1) {
+            flushInput();
+            printf(RED "Invalid input! Please enter a number.\n" RESET);
+            continue;
+        }
+
+        switch (choice) {
+            case 1: adminPanel(); break;
+            case 2: guestPanel(); break;
+            case 3: exit(0);
+            default: printf(RED "Invalid choice!\n" RESET);
+        }
+    }
+}
+
+void adminPanel() {
+    char user[20], pass[20];
+
+    printf("\n" YELLOW BOLD "--- ADMIN LOGIN ---\n" RESET);
+    printf(CYAN "Username: " RESET);
+    scanf("%s", user);
+    printf(CYAN "Password: " RESET);
+    scanf("%s", pass);
+
+    if (strcmp(user, "admin") != 0 || strcmp(pass, "1234") != 0) {
+        printf(RED "Login Failed!\n" RESET);
+        return;
+    }
+
+    int ch;
+    while (1) {
+        printf("\n" YELLOW BOLD "--- ADMIN PANEL ---\n" RESET);
+        printf(WHITE BOLD "1. View Bookings\n" RESET);
+        printf(WHITE BOLD "2. Delete Booking\n" RESET);
+        printf(WHITE BOLD "3. View Restaurant Orders\n" RESET);
+        printf(WHITE BOLD "4. View Service Requests\n" RESET);
+        printf(WHITE BOLD "5. Back to Home\n" RESET);
+        printf(CYAN "Choose option: " RESET);
+
+        if (scanf("%d", &ch) != 1) {
+            flushInput();
+            printf(RED "Invalid input!\n" RESET);
+            continue;
+        }
+
+        switch (ch) {
+            case 1: viewBookings(); break;
+            case 2: deleteBooking(); break;
+            case 3: viewOrders(); break;
+            case 4: viewServices(); break;
+            case 5: return;
+            default: printf(RED "Invalid option!\n" RESET);
+        }
+    }
+}
+
+void deleteBooking() {
+    FILE *fp = fopen("booking.txt", "r");
+    FILE *temp = fopen("temp.txt", "w");
+
+    if (!fp) {
+        printf(RED "No booking records exist.\n" RESET);
+        if (temp) fclose(temp);
+        return;
+    }
+    if (!temp) {
+        printf(RED "Unable to create temporary file.\n" RESET);
+        fclose(fp);
+        return;
+    }
+
+    char phone[20];
+    printf("\n" YELLOW BOLD "--- DELETE BOOKING ---\n" RESET);
+    printf(CYAN "Enter Phone Number of the Reservation: " RESET);
+    scanf("%s", phone);
+
+    char line[512];
+    int found = 0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, phone)) {
+            found = 1;
+            continue;
+        }
+        fputs(line, temp);
+    }
+
+    fclose(fp);
+    fclose(temp);
+    remove("booking.txt");
+    rename("temp.txt", "booking.txt");
+
+    if (found)
+        printf(GREEN "Reservation deleted successfully!\n" RESET);
+    else
+        printf(RED "No reservation found for that phone number.\n" RESET);
+}
+
+void guestPanel() {
+    int ch;
+
+    while (1) {
+        printf("\n" YELLOW BOLD "--- GUEST PORTAL ---\n" RESET);
+        printf(WHITE BOLD "1. Room Booking\n" RESET);
+        printf(WHITE BOLD "2. Restaurant Order\n" RESET);
+        printf(WHITE BOLD "3. Service Request\n" RESET);
+        printf(WHITE BOLD "4. Check-Out\n" RESET);
+        printf(WHITE BOLD "5. Back to Home\n" RESET);
+        printf(CYAN "Choose option: " RESET);
+
+        if (scanf("%d", &ch) != 1) {
+            flushInput();
+            printf(RED "Invalid input!\n" RESET);
+            continue;
+        }
+
+        switch (ch) {
+            case 1: booking(); break;
+            case 2: restaurant(); break;
+            case 3: serviceRequest(); break;
+            case 4: checkout(); break;
+            case 5: return;
+            default: printf(RED "Invalid option!\n" RESET);
+        }
+    }
+}
+
+void booking() {
+    struct Booking b;
+    FILE *fp = fopen("booking.txt", "a");
+
+    if (!fp) {
+        printf(RED "File error!\n" RESET);
+        return;
+    }
+
+    printf("\n" YELLOW BOLD "--- ROOM BOOKING ---\n" RESET);
+    printf(CYAN "Name: " RESET);
+    scanf("%49s", b.name);
+    printf(CYAN "Phone: " RESET);
+    scanf("%19s", b.phone);
+
+    int typeChoice;
+    printf("\n" WHITE BOLD "Select Room Type:\n" RESET);
+    printf(WHITE "1. Single  - 1500 per day\n" RESET);
+    printf(WHITE "2. Double  - 2500 per day\n" RESET);
+    printf(WHITE "3. Suite   - 4000 per day\n" RESET);
+    printf(CYAN "Choose (1-3): " RESET);
+
+    if (scanf("%d", &typeChoice) != 1) {
+        printf(RED "Invalid input!\n" RESET);
+        fclose(fp);
+        return;
+    }
+
+    switch (typeChoice) {
+        case 1: strcpy(b.roomType, "Single"); b.pricePerDay = 1500; break;
+        case 2: strcpy(b.roomType, "Double"); b.pricePerDay = 2500; break;
+        case 3: strcpy(b.roomType, "Suite");  b.pricePerDay = 4000; break;
+        default:
+            printf(RED "Invalid room type!\n" RESET);
+            fclose(fp);
+            return;
+    }
+
+    printf(CYAN "No. of Rooms: " RESET);
+    if (scanf("%d", &b.rooms) != 1) {
+        printf(RED "Invalid input!\n" RESET);
+        fclose(fp);
+        return;
+    }
+
+    printf("\n" WHITE BOLD "Enter Booking Start Date:\n" RESET);
+    printf(CYAN "Day   : " RESET); scanf("%d", &b.fromDay);
+    printf(CYAN "Month : " RESET); scanf("%d", &b.fromMonth);
+    printf(CYAN "Year  : " RESET); scanf("%d", &b.fromYear);
+
+    printf(CYAN "How many days will you stay? " RESET);
+    scanf("%d", &b.stayDays);
+
+    b.totalPrice = b.rooms * b.stayDays * b.pricePerDay;
+
+    fprintf(fp, "%s %s %s %d %02d-%02d-%04d %d %d %d\n",
+            b.name, b.phone, b.roomType, b.rooms,
+            b.fromDay, b.fromMonth, b.fromYear,
+            b.stayDays, b.pricePerDay, b.totalPrice);
+
+    printf(GREEN "\nBooking Successful!\n" RESET);
+    fclose(fp);
+}
+
+void restaurant() {
+    struct Order o;
+    FILE *fp = fopen("orders.txt", "a");
+
+    if (!fp) {
+        printf(RED "File error!\n" RESET);
+        return;
+    }
+
+    int more = 1;
+    int grandTotal = 0;
+
+    printf("\n" YELLOW BOLD "--- RESTAURANT ORDER ---\n" RESET);
+    printf(CYAN "Room Number: " RESET);
+
+    if (scanf("%d", &o.roomNo) != 1) {
+        printf(RED "Invalid input!\n" RESET);
+        fclose(fp);
+        return;
+    }
+
+    while (more == 1) {
+        int foodChoice;
+
+        printf("\n" YELLOW BOLD "--- MENU ---\n" RESET);
+        printf(WHITE "1. Fried Rice      - 250\n" RESET);
+        printf(WHITE "2. Chicken Curry   - 300\n" RESET);
+        printf(WHITE "3. Burger          - 200\n" RESET);
+        printf(WHITE "4. Coffee          - 100\n" RESET);
+        printf(WHITE "5. Water           -  30\n" RESET);
+        printf(CYAN "Choose item (1-5): " RESET);
+
+        if (scanf("%d", &foodChoice) != 1) {
+            flushInput();
+            printf(RED "Invalid input!\n" RESET);
+            continue;
+        }
+
+        switch (foodChoice) {
+            case 1: strcpy(o.item, "Fried_Rice");    o.unitPrice = 250; break;
+            case 2: strcpy(o.item, "Chicken_Curry"); o.unitPrice = 300; break;
+            case 3: strcpy(o.item, "Burger");        o.unitPrice = 200; break;
+            case 4: strcpy(o.item, "Coffee");        o.unitPrice = 100; break;
+            case 5: strcpy(o.item, "Water");         o.unitPrice =  30; break;
+            default:
+                printf(RED "Invalid choice! Try again.\n" RESET);
+                continue;
+        }
+
+        printf(CYAN "Quantity: " RESET);
+        if (scanf("%d", &o.quantity) != 1) {
+            flushInput();
+            printf(RED "Invalid input!\n" RESET);
+            continue;
+        }
+
+        o.totalPrice = o.unitPrice * o.quantity;
+        grandTotal += o.totalPrice;
+
+        printf("\n" YELLOW BOLD "--- ITEM SUMMARY ---\n" RESET);
+        printf(WHITE "Item        : %s\n" RESET, o.item);
+        printf(WHITE "Unit Price  : %d\n" RESET, o.unitPrice);
+        printf(WHITE "Quantity    : %d\n" RESET, o.quantity);
+        printf(WHITE "Subtotal    : %d\n" RESET, o.totalPrice);
+
+        fprintf(fp, "%d %s %d %d %d\n",
+                o.roomNo, o.item, o.unitPrice, o.quantity, o.totalPrice);
+
+        printf(CYAN "\nAdd another item? (1 = Yes, 0 = No): " RESET);
+        if (scanf("%d", &more) != 1) {
+            more = 0;
+            flushInput();
+        }
+    }
+
+    printf("\n" YELLOW BOLD "=== FINAL RESTAURANT BILL ===\n" RESET);
+    printf(WHITE "Room No     : %d\n" RESET, o.roomNo);
+    printf(WHITE "Grand Total : %d\n" RESET, grandTotal);
+    printf(GREEN "Order Placed Successfully!\n" RESET);
+
+    fclose(fp);
+}
+
+void serviceRequest() {
+    struct Service s;
+    FILE *fp = fopen("services.txt", "a");
+
+    if (!fp) {
+        printf(RED "File error!\n" RESET);
+        return;
+    }
+
+    printf("\n" YELLOW BOLD "--- SERVICE REQUEST ---\n" RESET);
+    printf(CYAN "Room Number: " RESET);
+
+    if (scanf("%d", &s.roomNo) != 1) {
+        printf(RED "Invalid input!\n" RESET);
+        fclose(fp);
+        return;
+    }
+
+    printf(CYAN "Request (Housekeeping/Laundry/Complaint): " RESET);
+    scanf("%49s", s.request);
+
+    fprintf(fp, "%d %s\n", s.roomNo, s.request);
+
+    printf(GREEN "Service Request Submitted!\n" RESET);
+    fclose(fp);
+}
+
+void checkout() {
+    int roomNo;
+    FILE *fp = fopen("checkout.txt", "a");
+
+    if (!fp) {
+        printf(RED "File error!\n" RESET);
+        return;
+    }
+
+    printf("\n" YELLOW BOLD "--- CHECK-OUT ---\n" RESET);
+    printf(CYAN "Enter Room Number: " RESET);
+
+    if (scanf("%d", &roomNo) != 1) {
+        printf(RED "Invalid input!\n" RESET);
+        fclose(fp);
+        return;
+    }
+
+    char method[20];
+    printf(CYAN "Payment Method (Cash/Card/Online): " RESET);
+    scanf("%19s", method);
+
+    fprintf(fp, "Room %d paid by %s\n", roomNo, method);
+    printf(GREEN "Checkout Complete!\n" RESET);
+
+    fclose(fp);
+}
+
+void viewBookings() {
+    FILE *fp = fopen("booking.txt", "r");
+    if (!fp) {
+        printf(RED "No booking records found.\n" RESET);
+        return;
+    }
+
+    printf("\n" YELLOW BOLD "--- ALL BOOKINGS ---\n" RESET);
+
+    char name[50], phone[20], roomType[20];
+    int rooms, day, month, year, stayDays, pricePerDay, totalPrice;
+
+    while (fscanf(fp, "%49s %19s %19s %d %d-%d-%d %d %d %d",
+                  name, phone, roomType, &rooms,
+                  &day, &month, &year,
+                  &stayDays, &pricePerDay, &totalPrice) == 10) {
+
+        printf(CYAN "\nName        : " WHITE "%s\n" RESET, name);
+        printf(CYAN "Phone       : " WHITE "%s\n" RESET, phone);
+        printf(CYAN "Room Type   : " WHITE "%s\n" RESET, roomType);
+        printf(CYAN "Rooms       : " WHITE "%d\n" RESET, rooms);
+        printf(CYAN "From Date   : " WHITE "%02d-%02d-%04d\n" RESET, day, month, year);
+        printf(CYAN "Stay Days   : " WHITE "%d\n" RESET, stayDays);
+        printf(CYAN "Price/Day   : " WHITE "%d\n" RESET, pricePerDay);
+        printf(CYAN "Total Price : " WHITE "%d\n" RESET, totalPrice);
+        printf(DIM "-----------------------------------------\n" RESET);
+    }
+
+    fclose(fp);
+}
+
+void viewOrders() {
+    FILE *fp = fopen("orders.txt", "r");
+    if (!fp) {
+        printf(RED "No order records found.\n" RESET);
+        return;
+    }
+
+    printf("\n" YELLOW BOLD "--- ALL RESTAURANT ORDERS ---\n" RESET);
+
+    int roomNo, unitPrice, quantity, totalPrice;
+    char item[50];
+
+    while (fscanf(fp, "%d %49s %d %d %d", &roomNo, item, &unitPrice, &quantity, &totalPrice) == 5) {
+        printf(CYAN "\nRoom No     : " WHITE "%d\n" RESET, roomNo);
+        printf(CYAN "Item        : " WHITE "%s\n" RESET, item);
+        printf(CYAN "Unit Price  : " WHITE "%d\n" RESET, unitPrice);
+        printf(CYAN "Quantity    : " WHITE "%d\n" RESET, quantity);
+        printf(CYAN "Total Price : " WHITE "%d\n" RESET, totalPrice);
+        printf(DIM "-----------------------------------------\n" RESET);
+    }
+
+    fclose(fp);
+}
+
+void viewServices() {
+    FILE *fp = fopen("services.txt", "r");
+    if (!fp) {
+        printf(RED "No service records found.\n" RESET);
+        return;
+    }
+
+    printf("\n" YELLOW BOLD "--- ALL SERVICE REQUESTS ---\n" RESET);
+
+    int roomNo;
+    char request[100];
+
+    while (fscanf(fp, "%d %99s", &roomNo, request) == 2) {
+        printf(CYAN "\nRoom No     : " WHITE "%d\n" RESET, roomNo);
+        printf(CYAN "Request     : " WHITE "%s\n" RESET, request);
+        printf(DIM "-----------------------------------------\n" RESET);
+    }
+
+    fclose(fp);
+}
